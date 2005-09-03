@@ -21,10 +21,10 @@ protected:
 		  DEFLATED=8, FAST=4, SLOW=2};
 
 	void WritePrestreamHeader();
-	void ProcessUncompressedData(const byte *string, size_t length);
+	void ProcessUncompressedData(const byte *string, unsigned int length);
 	void WritePoststreamTail();
 
-	word32 m_totalLen;
+	unsigned long m_totalLen;
 	CRC32 m_crc;
 };
 
@@ -52,11 +52,11 @@ protected:
 
 	unsigned int MaxPrestreamHeaderSize() const {return 1024;}
 	void ProcessPrestreamHeader();
-	void ProcessDecompressedData(const byte *string, size_t length);
+	void ProcessDecompressedData(const byte *string, unsigned int length);
 	unsigned int MaxPoststreamTailSize() const {return 8;}
 	void ProcessPoststreamTail();
 
-	word32 m_length;
+	unsigned long m_length;
 	CRC32 m_crc;
 };
 

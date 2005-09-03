@@ -13,12 +13,12 @@ NAMESPACE_BEGIN(CryptoPP)
 class PasswordBasedKeyDerivationFunction
 {
 public:
-	virtual size_t MaxDerivedKeyLength() const =0;
+	virtual unsigned int MaxDerivedKeyLength() const =0;
 	virtual bool UsesPurposeByte() const =0;
 	//! derive key from password
 	/*! If timeInSeconds != 0, will iterate until time elapsed, as measured by ThreadUserTimer
 		Returns actual iteration count, which is equal to iterations if timeInSeconds == 0, and not less than iterations otherwise. */
-	virtual unsigned int DeriveKey(byte *derived, size_t derivedLen, byte purpose, const byte *password, size_t passwordLen, const byte *salt, size_t saltLen, unsigned int iterations, double timeInSeconds=0) const =0;
+	virtual unsigned int DeriveKey(byte *derived, unsigned int derivedLen, byte purpose, const byte *password, unsigned int passwordLen, const byte *salt, unsigned int saltLen, unsigned int iterations, double timeInSeconds=0) const =0;
 };
 
 //! PBKDF1 from PKCS #5, T should be a HashTransformation class
@@ -26,10 +26,10 @@ template <class T>
 class PKCS5_PBKDF1 : public PasswordBasedKeyDerivationFunction
 {
 public:
-	size_t MaxDerivedKeyLength() const {return T::DIGESTSIZE;}
+	unsigned int MaxDerivedKeyLength() const {return T::DIGESTSIZE;}
 	bool UsesPurposeByte() const {return false;}
 	// PKCS #5 says PBKDF1 should only take 8-byte salts. This implementation allows salts of any length.
-	unsigned int DeriveKey(byte *derived, size_t derivedLen, byte purpose, const byte *password, size_t passwordLen, const byte *salt, size_t saltLen, unsigned int iterations, double timeInSeconds=0) const;
+	unsigned int DeriveKey(byte *derived, unsigned int derivedLen, byte purpose, const byte *password, unsigned int passwordLen, const byte *salt, unsigned int saltLen, unsigned int iterations, double timeInSeconds=0) const;
 };
 
 //! PBKDF2 from PKCS #5, T should be a HashTransformation class
@@ -37,9 +37,9 @@ template <class T>
 class PKCS5_PBKDF2_HMAC : public PasswordBasedKeyDerivationFunction
 {
 public:
-	size_t MaxDerivedKeyLength() const {return 0xffffffffU;}	// should multiply by T::DIGESTSIZE, but gets overflow that way
+	unsigned int MaxDerivedKeyLength() const {return 0xffffffffU;}	// should multiply by T::DIGESTSIZE, but gets overflow that way
 	bool UsesPurposeByte() const {return false;}
-	unsigned int DeriveKey(byte *derived, size_t derivedLen, byte purpose, const byte *password, size_t passwordLen, const byte *salt, size_t saltLen, unsigned int iterations, double timeInSeconds=0) const;
+	unsigned int DeriveKey(byte *derived, unsigned int derivedLen, byte purpose, const byte *password, unsigned int passwordLen, const byte *salt, unsigned int saltLen, unsigned int iterations, double timeInSeconds=0) const;
 };
 
 /*
@@ -53,7 +53,7 @@ public:
 */
 
 template <class T>
-unsigned int PKCS5_PBKDF1<T>::DeriveKey(byte *derived, size_t derivedLen, byte purpose, const byte *password, size_t passwordLen, const byte *salt, size_t saltLen, unsigned int iterations, double timeInSeconds) const
+unsigned int PKCS5_PBKDF1<T>::DeriveKey(byte *derived, unsigned int derivedLen, byte purpose, const byte *password, unsigned int passwordLen, const byte *salt, unsigned int saltLen, unsigned int iterations, double timeInSeconds) const
 {
 	assert(derivedLen <= MaxDerivedKeyLength());
 	assert(iterations > 0 || timeInSeconds > 0);
@@ -82,7 +82,7 @@ unsigned int PKCS5_PBKDF1<T>::DeriveKey(byte *derived, size_t derivedLen, byte p
 }
 
 template <class T>
-unsigned int PKCS5_PBKDF2_HMAC<T>::DeriveKey(byte *derived, size_t derivedLen, byte purpose, const byte *password, size_t passwordLen, const byte *salt, size_t saltLen, unsigned int iterations, double timeInSeconds) const
+unsigned int PKCS5_PBKDF2_HMAC<T>::DeriveKey(byte *derived, unsigned int derivedLen, byte purpose, const byte *password, unsigned int passwordLen, const byte *salt, unsigned int saltLen, unsigned int iterations, double timeInSeconds) const
 {
 	assert(derivedLen <= MaxDerivedKeyLength());
 	assert(iterations > 0 || timeInSeconds > 0);
@@ -106,7 +106,7 @@ unsigned int PKCS5_PBKDF2_HMAC<T>::DeriveKey(byte *derived, size_t derivedLen, b
 		}
 		hmac.Final(buffer);
 
-		size_t segmentLen = STDMIN(derivedLen, buffer.size());
+		unsigned int segmentLen = STDMIN(derivedLen, (unsigned int)buffer.size());
 		memcpy(derived, buffer, segmentLen);
 
 		if (timeInSeconds)
@@ -140,13 +140,13 @@ template <class T>
 class PKCS12_PBKDF : public PasswordBasedKeyDerivationFunction
 {
 public:
-	size_t MaxDerivedKeyLength() const {return size_t(0)-1;}
+	unsigned int MaxDerivedKeyLength() const {return UINT_MAX;}
 	bool UsesPurposeByte() const {return true;}
-	unsigned int DeriveKey(byte *derived, size_t derivedLen, byte purpose, const byte *password, size_t passwordLen, const byte *salt, size_t saltLen, unsigned int iterations, double timeInSeconds) const;
+	unsigned int DeriveKey(byte *derived, unsigned int derivedLen, byte purpose, const byte *password, unsigned int passwordLen, const byte *salt, unsigned int saltLen, unsigned int iterations, double timeInSeconds) const;
 };
 
 template <class T>
-unsigned int PKCS12_PBKDF<T>::DeriveKey(byte *derived, size_t derivedLen, byte purpose, const byte *password, size_t passwordLen, const byte *salt, size_t saltLen, unsigned int iterations, double timeInSeconds) const
+unsigned int PKCS12_PBKDF<T>::DeriveKey(byte *derived, unsigned int derivedLen, byte purpose, const byte *password, unsigned int passwordLen, const byte *salt, unsigned int saltLen, unsigned int iterations, double timeInSeconds) const
 {
 	assert(derivedLen <= MaxDerivedKeyLength());
 	assert(iterations > 0 || timeInSeconds > 0);
@@ -154,14 +154,14 @@ unsigned int PKCS12_PBKDF<T>::DeriveKey(byte *derived, size_t derivedLen, byte p
 	if (!iterations)
 		iterations = 1;
 
-	const size_t v = T::BLOCKSIZE;	// v is in bytes rather than bits as in PKCS #12
-	const size_t DLen = v, SLen = RoundUpToMultipleOf(saltLen, v);
-	const size_t PLen = RoundUpToMultipleOf(passwordLen, v), ILen = SLen + PLen;
+	const unsigned int v = T::BLOCKSIZE;	// v is in bytes rather than bits as in PKCS #12
+	const unsigned int DLen = v, SLen = RoundUpToMultipleOf(saltLen, v);
+	const unsigned int PLen = RoundUpToMultipleOf(passwordLen, v), ILen = SLen + PLen;
 	SecByteBlock buffer(DLen + SLen + PLen);
 	byte *D = buffer, *S = buffer+DLen, *P = buffer+DLen+SLen, *I = S;
 
 	memset(D, purpose, DLen);
-	size_t i;
+	unsigned int i;
 	for (i=0; i<SLen; i++)
 		S[i] = salt[i % saltLen];
 	for (i=0; i<PLen; i++)
@@ -187,7 +187,7 @@ unsigned int PKCS12_PBKDF<T>::DeriveKey(byte *derived, size_t derivedLen, byte p
 
 		if (timeInSeconds)
 		{
-			iterations = (unsigned int)i;
+			iterations = i;
 			timeInSeconds = 0;
 		}
 
@@ -199,7 +199,7 @@ unsigned int PKCS12_PBKDF<T>::DeriveKey(byte *derived, size_t derivedLen, byte p
 		for (i=0; i<ILen; i+=v)
 			(Integer(I+i, v) + B1).Encode(I+i, v);
 
-		size_t segmentLen = STDMIN(derivedLen, Ai.size());
+		unsigned int segmentLen = STDMIN(derivedLen, (unsigned int)Ai.size());
 		memcpy(derived, Ai, segmentLen);
 		derived += segmentLen;
 		derivedLen -= segmentLen;

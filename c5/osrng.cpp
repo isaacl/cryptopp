@@ -81,13 +81,13 @@ byte NonblockingRng::GenerateByte()
 	return b;
 }
 
-void NonblockingRng::GenerateBlock(byte *output, size_t size)
+void NonblockingRng::GenerateBlock(byte *output, unsigned int size)
 {
 #ifdef CRYPTOPP_WIN32_AVAILABLE
 #	ifdef WORKAROUND_MS_BUG_Q258000
 		static MicrosoftCryptoProvider m_Provider;
 #	endif
-	if (!CryptGenRandom(m_Provider.GetProviderHandle(), (DWORD)size, output))
+	if (!CryptGenRandom(m_Provider.GetProviderHandle(), size, output))
 		throw OS_RNG_Err("CryptGenRandom");
 #else
 	if (read(m_fd, output, size) != size)
@@ -120,7 +120,7 @@ byte BlockingRng::GenerateByte()
 	return b;
 }
 
-void BlockingRng::GenerateBlock(byte *output, size_t size)
+void BlockingRng::GenerateBlock(byte *output, unsigned int size)
 {
 	while (size)
 	{
@@ -140,7 +140,7 @@ void BlockingRng::GenerateBlock(byte *output, size_t size)
 
 // *************************************************************
 
-void OS_GenerateRandomBlock(bool blocking, byte *output, size_t size)
+void OS_GenerateRandomBlock(bool blocking, byte *output, unsigned int size)
 {
 #ifdef NONBLOCKING_RNG_AVAILABLE
 	if (blocking)

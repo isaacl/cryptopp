@@ -171,8 +171,7 @@ int main(int argc, char *argv[])
 		{
 			HMODULE hModule = LoadLibrary(argv[2]);
 			PGetPowerUpSelfTestStatus pGetPowerUpSelfTestStatus = (PGetPowerUpSelfTestStatus)GetProcAddress(hModule, "?GetPowerUpSelfTestStatus@CryptoPP@@YA?AW4PowerUpSelfTestStatus@1@XZ");
-			PGetActualMacAndLocation pGetActualMacAndLocation = (PGetActualMacAndLocation)GetProcAddress(hModule, 
-				sizeof(byte *)==4 ? "?GetActualMacAndLocation@CryptoPP@@YAPBEAAI0@Z" : "?GetActualMacAndLocation@CryptoPP@@YAPEBEAEAI0@Z");
+			PGetActualMacAndLocation pGetActualMacAndLocation = (PGetActualMacAndLocation)GetProcAddress(hModule, "?GetActualMacAndLocation@CryptoPP@@YAPBEAAI0@Z");
 
 			PowerUpSelfTestStatus status = pGetPowerUpSelfTestStatus();
 			if (status == POWER_UP_SELF_TEST_PASSED)
@@ -331,7 +330,7 @@ void FIPS140_GenerateRandomFiles()
 SecByteBlock HexDecodeString(const char *hex)
 {
 	StringSource ss(hex, true, new HexDecoder);
-	SecByteBlock result((size_t)ss.MaxRetrievable());
+	SecByteBlock result(ss.MaxRetrievable());
 	ss.Get(result, result.size());
 	return result;
 }

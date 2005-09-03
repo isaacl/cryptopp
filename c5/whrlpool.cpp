@@ -67,7 +67,7 @@ void Whirlpool::InitState(HashWordType *state)
 	memset(state, 0, 8*sizeof(state[0]));
 }
 
-void Whirlpool::TruncatedFinal(byte *hash, size_t size)
+void Whirlpool::TruncatedFinal(byte *hash, unsigned int size)
 {
 	ThrowIfInvalidTruncatedSize(size);
 

@@ -15,16 +15,16 @@ static const unsigned int s_maxAutoNodeSize = 16*1024;
 class ByteQueueNode
 {
 public:
-	ByteQueueNode(size_t maxSize)
+	ByteQueueNode(unsigned int maxSize)
 		: buf(maxSize)
 	{
 		m_head = m_tail = 0;
 		next = 0;
 	}
 
-	inline size_t MaxSize() const {return buf.size();}
+	inline unsigned int MaxSize() const {return buf.size();}
 
-	inline size_t CurrentSize() const
+	inline unsigned int CurrentSize() const
 	{
 		return m_tail-m_head;
 	}
@@ -39,16 +39,16 @@ public:
 		m_head = m_tail = 0;
 	}
 
-	inline size_t Put(const byte *begin, size_t length)
+	inline unsigned int Put(const byte *begin, unsigned int length)
 	{
-		size_t l = STDMIN(length, MaxSize()-m_tail);
+		unsigned int l = STDMIN(length, MaxSize()-m_tail);
 		if (buf+m_tail != begin)
 			memcpy(buf+m_tail, begin, l);
 		m_tail += l;
 		return l;
 	}
 
-	inline size_t Peek(byte &outByte) const
+	inline unsigned int Peek(byte &outByte) const
 	{
 		if (m_tail==m_head)
 			return 0;
@@ -57,65 +57,65 @@ public:
 		return 1;
 	}
 
-	inline size_t Peek(byte *target, size_t copyMax) const
+	inline unsigned int Peek(byte *target, unsigned int copyMax) const
 	{
-		size_t len = STDMIN(copyMax, m_tail-m_head);
+		unsigned int len = STDMIN(copyMax, m_tail-m_head);
 		memcpy(target, buf+m_head, len);
 		return len;
 	}
 
-	inline size_t CopyTo(BufferedTransformation &target, const std::string &channel=BufferedTransformation::NULL_CHANNEL) const
+	inline unsigned int CopyTo(BufferedTransformation &target, const std::string &channel=BufferedTransformation::NULL_CHANNEL) const
 	{
-		size_t len = m_tail-m_head;
+		unsigned int len = m_tail-m_head;
 		target.ChannelPut(channel, buf+m_head, len);
 		return len;
 	}
 
-	inline size_t CopyTo(BufferedTransformation &target, size_t copyMax, const std::string &channel=BufferedTransformation::NULL_CHANNEL) const
+	inline unsigned int CopyTo(BufferedTransformation &target, unsigned int copyMax, const std::string &channel=BufferedTransformation::NULL_CHANNEL) const
 	{
-		size_t len = STDMIN(copyMax, m_tail-m_head);
+		unsigned int len = STDMIN(copyMax, m_tail-m_head);
 		target.ChannelPut(channel, buf+m_head, len);
 		return len;
 	}
 
-	inline size_t Get(byte &outByte)
+	inline unsigned int Get(byte &outByte)
 	{
-		size_t len = Peek(outByte);
+		unsigned int len = Peek(outByte);
 		m_head += len;
 		return len;
 	}
 
-	inline size_t Get(byte *outString, size_t getMax)
+	inline unsigned int Get(byte *outString, unsigned int getMax)
 	{
-		size_t len = Peek(outString, getMax);
+		unsigned int len = Peek(outString, getMax);
 		m_head += len;
 		return len;
 	}
 
-	inline size_t TransferTo(BufferedTransformation &target, const std::string &channel=BufferedTransformation::NULL_CHANNEL)
+	inline unsigned int TransferTo(BufferedTransformation &target, const std::string &channel=BufferedTransformation::NULL_CHANNEL)
 	{
-		size_t len = m_tail-m_head;
+		unsigned int len = m_tail-m_head;
 		target.ChannelPutModifiable(channel, buf+m_head, len);
 		m_head = m_tail;
 		return len;
 	}
 
-	inline size_t TransferTo(BufferedTransformation &target, lword transferMax, const std::string &channel=BufferedTransformation::NULL_CHANNEL)
+	inline unsigned int TransferTo(BufferedTransformation &target, unsigned int transferMax, const std::string &channel=BufferedTransformation::NULL_CHANNEL)
 	{
-		size_t len = UnsignedMin(m_tail-m_head, transferMax);
+		unsigned int len = STDMIN(transferMax, m_tail-m_head);
 		target.ChannelPutModifiable(channel, buf+m_head, len);
 		m_head += len;
 		return len;
 	}
 
-	inline size_t Skip(size_t skipMax)
+	inline unsigned int Skip(unsigned int skipMax)
 	{
-		size_t len = STDMIN(skipMax, m_tail-m_head);
+		unsigned int len = STDMIN(skipMax, m_tail-m_head);
 		m_head += len;
 		return len;
 	}
 
-	inline byte operator[](size_t i) const
+	inline byte operator[](unsigned int i) const
 	{
 		return buf[m_head+i];
 	}
@@ -123,19 +123,19 @@ public:
 	ByteQueueNode *next;
 
 	SecByteBlock buf;
-	size_t m_head, m_tail;
+	unsigned int m_head, m_tail;
 };
 
 // ********************************************************
 
-ByteQueue::ByteQueue(size_t nodeSize)
+ByteQueue::ByteQueue(unsigned int nodeSize)
 	: m_lazyLength(0)
 {
 	SetNodeSize(nodeSize);
 	m_head = m_tail = new ByteQueueNode(m_nodeSize);
 }
 
-void ByteQueue::SetNodeSize(size_t nodeSize)
+void ByteQueue::SetNodeSize(unsigned int nodeSize)
 {
 	m_autoNodeSize = !nodeSize;
 	m_nodeSize = m_autoNodeSize ? 256 : nodeSize;
@@ -184,9 +184,9 @@ void ByteQueue::IsolatedInitialize(const NameValuePairs &parameters)
 	Clear();
 }
 
-lword ByteQueue::CurrentSize() const
+unsigned long ByteQueue::CurrentSize() const
 {
-	lword size=0;
+	unsigned long size=0;
 
 	for (ByteQueueNode *current=m_head; current; current=current->next)
 		size += current->CurrentSize();
@@ -213,12 +213,12 @@ void ByteQueue::Clear()
 	m_lazyLength = 0;
 }
 
-size_t ByteQueue::Put2(const byte *inString, size_t length, int messageEnd, bool blocking)
+unsigned int ByteQueue::Put2(const byte *inString, unsigned int length, int messageEnd, bool blocking)
 {
 	if (m_lazyLength > 0)
 		FinalizeLazyPut();
 
-	size_t len;
+	unsigned int len;
 	while ((len=m_tail->Put(inString, length)) < length)
 	{
 		inString += len;
@@ -249,7 +249,7 @@ void ByteQueue::CleanupUsedNodes()
 		m_head->Clear();
 }
 
-void ByteQueue::LazyPut(const byte *inString, size_t size)
+void ByteQueue::LazyPut(const byte *inString, unsigned int size)
 {
 	if (m_lazyLength > 0)
 		FinalizeLazyPut();
@@ -264,7 +264,7 @@ void ByteQueue::LazyPut(const byte *inString, size_t size)
 	}
 }
 
-void ByteQueue::LazyPutModifiable(byte *inString, size_t size)
+void ByteQueue::LazyPutModifiable(byte *inString, unsigned int size)
 {
 	if (m_lazyLength > 0)
 		FinalizeLazyPut();
@@ -273,7 +273,7 @@ void ByteQueue::LazyPutModifiable(byte *inString, size_t size)
 	m_lazyStringModifiable = true;
 }
 
-void ByteQueue::UndoLazyPut(size_t size)
+void ByteQueue::UndoLazyPut(unsigned int size)
 {
 	if (m_lazyLength < size)
 		throw InvalidArgument("ByteQueue: size specified for UndoLazyPut is too large");
@@ -283,13 +283,13 @@ void ByteQueue::UndoLazyPut(size_t size)
 
 void ByteQueue::FinalizeLazyPut()
 {
-	size_t len = m_lazyLength;
+	unsigned int len = m_lazyLength;
 	m_lazyLength = 0;
 	if (len)
 		Put(m_lazyString, len);
 }
 
-size_t ByteQueue::Get(byte &outByte)
+unsigned int ByteQueue::Get(byte &outByte)
 {
 	if (m_head->Get(outByte))
 	{
@@ -307,13 +307,13 @@ size_t ByteQueue::Get(byte &outByte)
 		return 0;
 }
 
-size_t ByteQueue::Get(byte *outString, size_t getMax)
+unsigned int ByteQueue::Get(byte *outString, unsigned int getMax)
 {
 	ArraySink sink(outString, getMax);
-	return (size_t)TransferTo(sink, getMax);
+	return TransferTo(sink, getMax);
 }
 
-size_t ByteQueue::Peek(byte &outByte) const
+unsigned int ByteQueue::Peek(byte &outByte) const
 {
 	if (m_head->Peek(outByte))
 		return 1;
@@ -326,22 +326,22 @@ size_t ByteQueue::Peek(byte &outByte) const
 		return 0;
 }
 
-size_t ByteQueue::Peek(byte *outString, size_t peekMax) const
+unsigned int ByteQueue::Peek(byte *outString, unsigned int peekMax) const
 {
 	ArraySink sink(outString, peekMax);
-	return (size_t)CopyTo(sink, peekMax);
+	return CopyTo(sink, peekMax);
 }
 
-size_t ByteQueue::TransferTo2(BufferedTransformation &target, lword &transferBytes, const std::string &channel, bool blocking)
+unsigned int ByteQueue::TransferTo2(BufferedTransformation &target, unsigned long &transferBytes, const std::string &channel, bool blocking)
 {
 	if (blocking)
 	{
-		lword bytesLeft = transferBytes;
+		unsigned long bytesLeft = transferBytes;
 		for (ByteQueueNode *current=m_head; bytesLeft && current; current=current->next)
 			bytesLeft -= current->TransferTo(target, bytesLeft, channel);
 		CleanupUsedNodes();
 
-		size_t len = (size_t)STDMIN(bytesLeft, (lword)m_lazyLength);
+		unsigned int len = (unsigned int)STDMIN(bytesLeft, (unsigned long)m_lazyLength);
 		if (len)
 		{
 			if (m_lazyStringModifiable)
@@ -358,18 +358,18 @@ size_t ByteQueue::TransferTo2(BufferedTransformation &target, lword &transferByt
 	else
 	{
 		Walker walker(*this);
-		size_t blockedBytes = walker.TransferTo2(target, transferBytes, channel, blocking);
+		unsigned int blockedBytes = walker.TransferTo2(target, transferBytes, channel, blocking);
 		Skip(transferBytes);
 		return blockedBytes;
 	}
 }
 
-size_t ByteQueue::CopyRangeTo2(BufferedTransformation &target, lword &begin, lword end, const std::string &channel, bool blocking) const
+unsigned int ByteQueue::CopyRangeTo2(BufferedTransformation &target, unsigned long &begin, unsigned long end, const std::string &channel, bool blocking) const
 {
 	Walker walker(*this);
 	walker.Skip(begin);
-	lword transferBytes = end-begin;
-	size_t blockedBytes = walker.TransferTo2(target, transferBytes, channel, blocking);
+	unsigned long transferBytes = end-begin;
+	unsigned int blockedBytes = walker.TransferTo2(target, transferBytes, channel, blocking);
 	begin += transferBytes;
 	return blockedBytes;
 }
@@ -379,9 +379,9 @@ void ByteQueue::Unget(byte inByte)
 	Unget(&inByte, 1);
 }
 
-void ByteQueue::Unget(const byte *inString, size_t length)
+void ByteQueue::Unget(const byte *inString, unsigned int length)
 {
-	size_t len = STDMIN(length, m_head->m_head);
+	unsigned int len = STDMIN(length, m_head->m_head);
 	length -= len;
 	m_head->m_head -= len;
 	memcpy(m_head->buf + m_head->m_head, inString + length, len);
@@ -395,7 +395,7 @@ void ByteQueue::Unget(const byte *inString, size_t length)
 	}
 }
 
-const byte * ByteQueue::Spy(size_t &contiguousSize) const
+const byte * ByteQueue::Spy(unsigned int &contiguousSize) const
 {
 	contiguousSize = m_head->m_tail - m_head->m_head;
 	if (contiguousSize == 0 && m_lazyLength > 0)
@@ -407,7 +407,7 @@ const byte * ByteQueue::Spy(size_t &contiguousSize) const
 		return m_head->buf + m_head->m_head;
 }
 
-byte * ByteQueue::CreatePutSpace(size_t &size)
+byte * ByteQueue::CreatePutSpace(unsigned int &size)
 {
 	if (m_lazyLength > 0)
 		FinalizeLazyPut();
@@ -431,7 +431,7 @@ ByteQueue & ByteQueue::operator=(const ByteQueue &rhs)
 
 bool ByteQueue::operator==(const ByteQueue &rhs) const
 {
-	const lword currentSize = CurrentSize();
+	const unsigned long currentSize = CurrentSize();
 
 	if (currentSize != rhs.CurrentSize())
 		return false;
@@ -446,12 +446,12 @@ bool ByteQueue::operator==(const ByteQueue &rhs) const
 	return true;
 }
 
-byte ByteQueue::operator[](lword i) const
+byte ByteQueue::operator[](unsigned long i) const
 {
 	for (ByteQueueNode *current=m_head; current; current=current->next)
 	{
 		if (i < current->CurrentSize())
-			return (*current)[(size_t)i];
+			return (*current)[i];
 		
 		i -= current->CurrentSize();
 	}
@@ -482,38 +482,38 @@ void ByteQueue::Walker::IsolatedInitialize(const NameValuePairs &parameters)
 	m_lazyLength = m_queue.m_lazyLength;
 }
 
-size_t ByteQueue::Walker::Get(byte &outByte)
+unsigned int ByteQueue::Walker::Get(byte &outByte)
 {
 	ArraySink sink(&outByte, 1);
-	return (size_t)TransferTo(sink, 1);
+	return TransferTo(sink, 1);
 }
 
-size_t ByteQueue::Walker::Get(byte *outString, size_t getMax)
+unsigned int ByteQueue::Walker::Get(byte *outString, unsigned int getMax)
 {
 	ArraySink sink(outString, getMax);
-	return (size_t)TransferTo(sink, getMax);
+	return TransferTo(sink, getMax);
 }
 
-size_t ByteQueue::Walker::Peek(byte &outByte) const
+unsigned int ByteQueue::Walker::Peek(byte &outByte) const
 {
 	ArraySink sink(&outByte, 1);
-	return (size_t)CopyTo(sink, 1);
+	return CopyTo(sink, 1);
 }
 
-size_t ByteQueue::Walker::Peek(byte *outString, size_t peekMax) const
+unsigned int ByteQueue::Walker::Peek(byte *outString, unsigned int peekMax) const
 {
 	ArraySink sink(outString, peekMax);
-	return (size_t)CopyTo(sink, peekMax);
+	return CopyTo(sink, peekMax);
 }
 
-size_t ByteQueue::Walker::TransferTo2(BufferedTransformation &target, lword &transferBytes, const std::string &channel, bool blocking)
+unsigned int ByteQueue::Walker::TransferTo2(BufferedTransformation &target, unsigned long &transferBytes, const std::string &channel, bool blocking)
 {
-	lword bytesLeft = transferBytes;
-	size_t blockedBytes = 0;
+	unsigned long bytesLeft = transferBytes;
+	unsigned int blockedBytes = 0;
 
 	while (m_node)
 	{
-		size_t len = (size_t)STDMIN(bytesLeft, (lword)m_node->CurrentSize()-m_offset);
+		unsigned int len = STDMIN(bytesLeft, (unsigned long)m_node->CurrentSize()-m_offset);
 		blockedBytes = target.ChannelPut2(channel, m_node->buf+m_node->m_head+m_offset, len, 0, blocking);
 
 		if (blockedBytes)
@@ -534,8 +534,8 @@ size_t ByteQueue::Walker::TransferTo2(BufferedTransformation &target, lword &tra
 
 	if (bytesLeft && m_lazyLength)
 	{
-		size_t len = (size_t)STDMIN(bytesLeft, (lword)m_lazyLength);
-		blockedBytes = target.ChannelPut2(channel, m_lazyString, len, 0, blocking);
+		unsigned int len = (unsigned int)STDMIN(bytesLeft, (unsigned long)m_lazyLength);
+		unsigned int blockedBytes = target.ChannelPut2(channel, m_lazyString, len, 0, blocking);
 		if (blockedBytes)
 			goto done;
 
@@ -549,12 +549,12 @@ done:
 	return blockedBytes;
 }
 
-size_t ByteQueue::Walker::CopyRangeTo2(BufferedTransformation &target, lword &begin, lword end, const std::string &channel, bool blocking) const
+unsigned int ByteQueue::Walker::CopyRangeTo2(BufferedTransformation &target, unsigned long &begin, unsigned long end, const std::string &channel, bool blocking) const
 {
 	Walker walker(*this);
 	walker.Skip(begin);
-	lword transferBytes = end-begin;
-	size_t blockedBytes = walker.TransferTo2(target, transferBytes, channel, blocking);
+	unsigned long transferBytes = end-begin;
+	unsigned int blockedBytes = walker.TransferTo2(target, transferBytes, channel, blocking);
 	begin += transferBytes;
 	return blockedBytes;
 }

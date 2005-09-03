@@ -8,19 +8,14 @@
 
 NAMESPACE_BEGIN(CryptoPP)
 
-size_t NonblockingSource::PumpMessages2(unsigned int &messageCount, bool blocking)
+unsigned int NonblockingSource::PumpMessages2(unsigned int &messageCount, bool blocking)
 {
 	if (messageCount == 0)
 		return 0;
 
+	unsigned long byteCount = ULONG_MAX;
 	messageCount = 0;
-
-	lword byteCount;
-	do {
-		byteCount = LWORD_MAX;
-		RETURN_IF_NONZERO(Pump2(byteCount, blocking));
-	} while(byteCount == LWORD_MAX);
-
+	RETURN_IF_NONZERO(Pump2(byteCount, blocking));
 	if (!m_messageEndSent && SourceExhausted())
 	{
 		RETURN_IF_NONZERO(AttachedTransformation()->Put2(NULL, 0, GetAutoSignalPropagation(), true));
@@ -59,11 +54,11 @@ void NetworkSource::GetWaitObjects(WaitObjectContainer &container)
 	AttachedTransformation()->GetWaitObjects(container);
 }
 
-size_t NetworkSource::GeneralPump2(lword &byteCount, bool blockingOutput, unsigned long maxTime, bool checkDelimiter, byte delimiter)
+unsigned int NetworkSource::GeneralPump2(unsigned long &byteCount, bool blockingOutput, unsigned long maxTime, bool checkDelimiter, byte delimiter)
 {
 	NetworkReceiver &receiver = AccessReceiver();
 
-	lword maxSize = byteCount;
+	unsigned long maxSize = byteCount;
 	byteCount = 0;
 	bool forever = maxTime == INFINITE_TIME;
 	Timer timer(Timer::MILLISECONDS, forever);
@@ -133,12 +128,12 @@ ReceiveNoWait:
 		}
 		else
 		{
-			m_putSize = (size_t)STDMIN((lword)m_dataEnd-m_dataBegin, maxSize-byteCount);
+			m_putSize = STDMIN((unsigned long)m_dataEnd-m_dataBegin, maxSize-byteCount);
 			if (checkDelimiter)
 				m_putSize = std::find(m_buf+m_dataBegin, m_buf+m_dataBegin+m_putSize, delimiter) - (m_buf+m_dataBegin);
 
 DoOutput:
-			size_t result = t->PutModifiable2(m_buf+m_dataBegin, m_putSize, 0, forever || blockingOutput);
+			unsigned int result = t->PutModifiable2(m_buf+m_dataBegin, m_putSize, 0, forever || blockingOutput);
 			if (result)
 			{
 				if (t->Wait(SaturatingSubtract(maxTime, timer.ElapsedTime())))
@@ -192,7 +187,7 @@ float NetworkSink::ComputeCurrentSpeed()
 	return m_currentSpeed;
 }
 
-size_t NetworkSink::Put2(const byte *inString, size_t length, int messageEnd, bool blocking)
+unsigned int NetworkSink::Put2(const byte *inString, unsigned int length, int messageEnd, bool blocking)
 {
 	if (m_skipBytes)
 	{
@@ -205,19 +200,19 @@ size_t NetworkSink::Put2(const byte *inString, size_t length, int messageEnd, bo
 	if (!blocking || m_buffer.CurrentSize() > m_autoFlushBound)
 		TimedFlush(0, 0);
 
-	size_t targetSize = messageEnd ? 0 : m_maxBufferSize;
+	unsigned int targetSize = messageEnd ? 0 : m_maxBufferSize;
 	if (blocking)
 		TimedFlush(INFINITE_TIME, targetSize);
 
 	if (m_buffer.CurrentSize() > targetSize)
 	{
 		assert(!blocking);
-		size_t blockedBytes = (size_t)STDMIN(m_buffer.CurrentSize() - targetSize, (lword)length);
+		unsigned int blockedBytes = STDMIN(m_buffer.CurrentSize() - targetSize, (unsigned long)length);
 		m_buffer.UndoLazyPut(blockedBytes);
 		m_buffer.FinalizeLazyPut();
 		m_wasBlocked = true;
 		m_skipBytes += length - blockedBytes;
-		return UnsignedMin(1, blockedBytes);
+		return STDMAX(blockedBytes, 1U);
 	}
 
 	m_buffer.FinalizeLazyPut();
@@ -229,7 +224,7 @@ size_t NetworkSink::Put2(const byte *inString, size_t length, int messageEnd, bo
 	return 0;
 }
 
-lword NetworkSink::TimedFlush(unsigned long maxTime, size_t targetSize)
+unsigned int NetworkSink::TimedFlush(unsigned long maxTime, unsigned int targetSize)
 {
 	NetworkSender &sender = AccessSender();
 
@@ -263,7 +258,7 @@ lword NetworkSink::TimedFlush(unsigned long maxTime, size_t targetSize)
 		if (sender.MustWaitToSend() && !sender.Wait(timeOut))
 			break;
 
-		size_t contiguousSize = 0;
+		unsigned int contiguousSize = 0;
 		const byte *block = m_buffer.Spy(contiguousSize);
 
 #if CRYPTOPP_TRACE_NETWORK

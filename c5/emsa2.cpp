@@ -8,17 +8,17 @@
 NAMESPACE_BEGIN(CryptoPP)
 
 void EMSA2Pad::ComputeMessageRepresentative(RandomNumberGenerator &rng, 
-	const byte *recoverableMessage, size_t recoverableMessageLength,
+	const byte *recoverableMessage, unsigned int recoverableMessageLength,
 	HashTransformation &hash, HashIdentifier hashIdentifier, bool messageEmpty,
-	byte *representative, size_t representativeBitLength) const
+	byte *representative, unsigned int representativeBitLength) const
 {
 	assert(representativeBitLength >= MinRepresentativeBitLength(hashIdentifier.second, hash.DigestSize()));
 
 	if (representativeBitLength % 8 != 7)
 		throw PK_SignatureScheme::InvalidKeyLength("EMSA2: EMSA2 requires a key length that is a multiple of 8");
 
-	size_t digestSize = hash.DigestSize();
-	size_t representativeByteLength = BitsToBytes(representativeBitLength);
+	unsigned int digestSize = hash.DigestSize();
+	unsigned int representativeByteLength = BitsToBytes(representativeBitLength);
 
 	representative[0] = messageEmpty ? 0x4b : 0x6b;
 	memset(representative+1, 0xbb, representativeByteLength-digestSize-4);	// pad with 0xbb

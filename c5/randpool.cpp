@@ -40,9 +40,9 @@ void RandomPool::Stir()
 	getPos = key.size();
 }
 
-size_t RandomPool::Put2(const byte *inString, size_t length, int messageEnd, bool blocking)
+unsigned int RandomPool::Put2(const byte *inString, unsigned int length, int messageEnd, bool blocking)
 {
-	size_t t;
+	unsigned t;
 
 	while (length > (t = pool.size() - addPos))
 	{
@@ -62,21 +62,25 @@ size_t RandomPool::Put2(const byte *inString, size_t length, int messageEnd, boo
 	return 0;
 }
 
-size_t RandomPool::TransferTo2(BufferedTransformation &target, lword &transferBytes, const std::string &channel, bool blocking)
+unsigned int RandomPool::TransferTo2(BufferedTransformation &target, unsigned long &transferBytes, const std::string &channel, bool blocking)
 {
 	if (!blocking)
 		throw NotImplemented("RandomPool: nonblocking transfer is not implemented by this object");
 
-	lword size = transferBytes;
+	unsigned int t;
+	unsigned long size = transferBytes;
 
-	while (size > 0)
+	while (size > (t = pool.size() - getPos))
 	{
-		if (getPos == pool.size())
-			Stir();
-		size_t t = UnsignedMin(pool.size() - getPos, size);
 		target.ChannelPut(channel, pool+getPos, t);
 		size -= t;
-		getPos += t;
+		Stir();
+	}
+
+	if (size)
+	{
+		target.ChannelPut(channel, pool+getPos, size);
+		getPos += size;
 	}
 
 	return 0;
@@ -90,7 +94,7 @@ byte RandomPool::GenerateByte()
 	return pool[getPos++];
 }
 
-void RandomPool::GenerateBlock(byte *outString, size_t size)
+void RandomPool::GenerateBlock(byte *outString, unsigned int size)
 {
 	ArraySink sink(outString, size);
 	TransferTo(sink, size);

@@ -20,10 +20,10 @@ void Gzip::WritePrestreamHeader()
 	AttachedTransformation()->Put(GZIP_OS_CODE);
 }
 
-void Gzip::ProcessUncompressedData(const byte *inString, size_t length)
+void Gzip::ProcessUncompressedData(const byte *inString, unsigned int length)
 {
 	m_crc.Update(inString, length);
-	m_totalLen += (word32)length;
+	m_totalLen += length;
 }
 
 void Gzip::WritePoststreamTail()
@@ -74,11 +74,11 @@ void Gunzip::ProcessPrestreamHeader()
 		while (b);
 }
 
-void Gunzip::ProcessDecompressedData(const byte *inString, size_t length)
+void Gunzip::ProcessDecompressedData(const byte *inString, unsigned int length)
 {
 	AttachedTransformation()->Put(inString, length);
 	m_crc.Update(inString, length);
-	m_length += (word32)length;
+	m_length += length;
 }
 
 void Gunzip::ProcessPoststreamTail()

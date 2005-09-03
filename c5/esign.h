@@ -89,13 +89,13 @@ public:
 	static const char *StaticAlgorithmName() {return "EMSA5";}
 	
 	void ComputeMessageRepresentative(RandomNumberGenerator &rng, 
-		const byte *recoverableMessage, size_t recoverableMessageLength,
+		const byte *recoverableMessage, unsigned int recoverableMessageLength,
 		HashTransformation &hash, HashIdentifier hashIdentifier, bool messageEmpty,
-		byte *representative, size_t representativeBitLength) const
+		byte *representative, unsigned int representativeBitLength) const
 	{
 		SecByteBlock digest(hash.DigestSize());
 		hash.Final(digest);
-		size_t representativeByteLength = BitsToBytes(representativeBitLength);
+		unsigned int representativeByteLength = BitsToBytes(representativeBitLength);
 		T mgf;
 		mgf.GenerateAndMask(hash, representative, representativeByteLength, digest, digest.size(), false);
 		if (representativeBitLength % 8 != 0)

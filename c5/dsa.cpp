@@ -9,7 +9,7 @@
 
 NAMESPACE_BEGIN(CryptoPP)
 
-size_t DSAConvertSignatureFormat(byte *buffer, size_t bufferSize, DSASignatureFormat toFormat, const byte *signature, size_t signatureLen, DSASignatureFormat fromFormat)
+unsigned int DSAConvertSignatureFormat(byte *buffer, unsigned int bufferSize, DSASignatureFormat toFormat, const byte *signature, unsigned int signatureLen, DSASignatureFormat fromFormat)
 {
 	Integer r, s;
 	StringStore store(signature, signatureLen);
@@ -55,7 +55,7 @@ size_t DSAConvertSignatureFormat(byte *buffer, size_t bufferSize, DSASignatureFo
 		break;
 	}
 
-	return (size_t)sink.TotalPutLength();
+	return sink.TotalPutLength();
 }
 
 bool DSA::GeneratePrimes(const byte *seedIn, unsigned int g, int &counter,

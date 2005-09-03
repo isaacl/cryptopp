@@ -122,24 +122,12 @@ template <class T> inline const T& STDMIN(const T& a, const T& b)
 	return b < a ? b : a;
 }
 
-template <class T1, class T2> inline const T1 UnsignedMin(const T1& a, const T2& b)
-{
-	CRYPTOPP_COMPILE_ASSERT((sizeof(T1)<=sizeof(T2) && T2(-1)>0) || (sizeof(T1)>sizeof(T2) && T1(-1)>0));
-	assert(a>=0);
-	assert(b>=0);
-
-	if (sizeof(T1)<=sizeof(T2))
-		return b < (T2)a ? (T1)b : a;
-	else
-		return (T1)b < a ? (T1)b : a;
-}
-
 template <class T> inline const T& STDMAX(const T& a, const T& b)
 {
 	return a < b ? b : a;
 }
 
-#define RETURN_IF_NONZERO(x) size_t returnedValue = x; if (returnedValue) return returnedValue
+#define RETURN_IF_NONZERO(x) unsigned int returnedValue = x; if (returnedValue) return returnedValue
 
 // this version of the macro is fastest on Pentium 3 and Pentium 4 with MSVC 6 SP5 w/ Processor Pack
 #define GETBYTE(x, y) (unsigned int)byte((x)>>(8*(y)))
@@ -147,122 +135,56 @@ template <class T> inline const T& STDMAX(const T& a, const T& b)
 // #define GETBYTE(x, y) (unsigned int)(((x)>>(8*(y)))&255)
 // #define GETBYTE(x, y) (((byte *)&(x))[y])
 
-template <class T>
-unsigned int Parity(T value)
-{
-	for (unsigned int i=8*sizeof(value)/2; i>0; i/=2)
-		value ^= value >> i;
-	return (unsigned int)value&1;
-}
+CRYPTOPP_DLL unsigned int CRYPTOPP_API Parity(unsigned long);
+CRYPTOPP_DLL unsigned int CRYPTOPP_API BytePrecision(unsigned long);
+CRYPTOPP_DLL unsigned int CRYPTOPP_API BitPrecision(unsigned long);
+CRYPTOPP_DLL unsigned long CRYPTOPP_API Crop(unsigned long, unsigned int size);
 
-template <class T>
-unsigned int BytePrecision(const T &value)
-{
-	if (!value)
-		return 0;
-
-	unsigned int l=0, h=8*sizeof(value);
-
-	while (h-l > 8)
-	{
-		unsigned int t = (l+h)/2;
-		if (value >> t)
-			l = t;
-		else
-			h = t;
-	}
-
-	return h/8;
-}
-
-template <class T>
-unsigned int BitPrecision(const T &value)
-{
-	if (!value)
-		return 0;
-
-	unsigned int l=0, h=8*sizeof(value);
-
-	while (h-l > 1)
-	{
-		unsigned int t = (l+h)/2;
-		if (value >> t)
-			l = t;
-		else
-			h = t;
-	}
-
-	return h;
-}
-
-template <class T>
-inline T Crop(T value, size_t size)
-{
-	if (size < 8*sizeof(value))
-    	return T(value & ((T(1) << size) - 1));
-	else
-		return value;
-}
-
-template <class T1, class T2>
-inline bool SafeConvert(T1 from, T2 &to)
-{
-	to = (T2)from;
-	if (from != to || (from > 0 && to < 0))
-		return false;
-	return true;
-}
-
-inline size_t BitsToBytes(size_t bitCount)
+inline unsigned int BitsToBytes(unsigned int bitCount)
 {
 	return ((bitCount+7)/(8));
 }
 
-inline size_t BytesToWords(size_t byteCount)
+inline unsigned int BytesToWords(unsigned int byteCount)
 {
 	return ((byteCount+WORD_SIZE-1)/WORD_SIZE);
 }
 
-inline size_t BitsToWords(size_t bitCount)
+inline unsigned int BitsToWords(unsigned int bitCount)
 {
 	return ((bitCount+WORD_BITS-1)/(WORD_BITS));
 }
 
-inline size_t BitsToDwords(size_t bitCount)
+inline unsigned int BitsToDwords(unsigned int bitCount)
 {
 	return ((bitCount+2*WORD_BITS-1)/(2*WORD_BITS));
 }
 
-CRYPTOPP_DLL void CRYPTOPP_API xorbuf(byte *buf, const byte *mask, size_t count);
-CRYPTOPP_DLL void CRYPTOPP_API xorbuf(byte *output, const byte *input, const byte *mask, size_t count);
+CRYPTOPP_DLL void CRYPTOPP_API xorbuf(byte *buf, const byte *mask, unsigned int count);
+CRYPTOPP_DLL void CRYPTOPP_API xorbuf(byte *output, const byte *input, const byte *mask, unsigned int count);
 
 template <class T>
-inline bool IsPowerOf2(const T &n)
+inline bool IsPowerOf2(T n)
 {
 	return n > 0 && (n & (n-1)) == 0;
 }
 
 template <class T1, class T2>
-inline T2 ModPowerOf2(const T1 &a, const T2 &b)
+inline T2 ModPowerOf2(T1 a, T2 b)
 {
 	assert(IsPowerOf2(b));
 	return T2(a) & (b-1);
 }
 
-template <class T1, class T2>
-inline T1 RoundDownToMultipleOf(const T1 &n, const T2 &m)
+template <class T>
+inline T RoundDownToMultipleOf(T n, T m)
 {
-	if (IsPowerOf2(m))
-		return n - ModPowerOf2(n, m);
-	else
-		return n - n%m;
+	return n - (IsPowerOf2(m) ? ModPowerOf2(n, m) : (n%m));
 }
 
-template <class T1, class T2>
-inline T1 RoundUpToMultipleOf(const T1 &n, const T2 &m)
+template <class T>
+inline T RoundUpToMultipleOf(T n, T m)
 {
-	if (n+m-1 < n)
-		throw InvalidArgument("RoundUpToMultipleOf: integer overflow");
 	return RoundDownToMultipleOf(n+m-1, m);
 }
 
@@ -329,7 +251,7 @@ std::string IntToString(T a, unsigned int base = 10)
 }
 
 template <class T1, class T2>
-inline T1 SaturatingSubtract(const T1 &a, const T2 &b)
+inline T1 SaturatingSubtract(T1 a, T2 b)
 {
 	CRYPTOPP_COMPILE_ASSERT_INSTANCE(T1(-1)>0, 0);	// T1 is unsigned type
 	CRYPTOPP_COMPILE_ASSERT_INSTANCE(T2(-1)>0, 1);	// T2 is unsigned type
@@ -588,16 +510,16 @@ inline T ConditionalByteReverse(ByteOrder order, T value)
 }
 
 template <class T>
-void ByteReverse(T *out, const T *in, size_t byteCount)
+void ByteReverse(T *out, const T *in, unsigned int byteCount)
 {
 	assert(byteCount % sizeof(T) == 0);
-	size_t count = byteCount/sizeof(T);
-	for (size_t i=0; i<count; i++)
+	unsigned int count = byteCount/sizeof(T);
+	for (unsigned int i=0; i<count; i++)
 		out[i] = ByteReverse(in[i]);
 }
 
 template <class T>
-inline void ConditionalByteReverse(ByteOrder order, T *out, const T *in, size_t byteCount)
+inline void ConditionalByteReverse(ByteOrder order, T *out, const T *in, unsigned int byteCount)
 {
 	if (!NativeByteOrderIs(order))
 		ByteReverse(out, in, byteCount);
@@ -606,9 +528,9 @@ inline void ConditionalByteReverse(ByteOrder order, T *out, const T *in, size_t 
 }
 
 template <class T>
-inline void GetUserKey(ByteOrder order, T *out, size_t outlen, const byte *in, size_t inlen)
+inline void GetUserKey(ByteOrder order, T *out, unsigned int outlen, const byte *in, unsigned int inlen)
 {
-	const size_t U = sizeof(T);
+	const unsigned int U = sizeof(T);
 	assert(inlen <= outlen*U);
 	memcpy(out, in, inlen);
 	memset((byte *)out+inlen, 0, outlen*U-inlen);
@@ -852,7 +774,7 @@ template <class T>
 T StringToWord(const std::string &str, ByteOrder order = BIG_ENDIAN_ORDER)
 {
 	T value = 0;
-	memcpy(&value, str.data(), UnsignedMin(str.size(), sizeof(value)));
+	memcpy(&value, str.data(), STDMIN(sizeof(value), str.size()));
 	return NativeByteOrderIs(order) ? value : ByteReverse(value);
 }
 
