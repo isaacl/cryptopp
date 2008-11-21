@@ -251,14 +251,13 @@ protected:
 	ByteQueue m_inQueue;
 };
 
-//! Filter Wrapper for StreamTransformation, optionally handling padding/unpadding when needed
+//! Filter Wrapper for StreamTransformation
 class CRYPTOPP_DLL StreamTransformationFilter : public FilterWithBufferedInput, private FilterPutSpaceHelper
 {
 public:
 	enum BlockPaddingScheme {NO_PADDING, ZEROS_PADDING, PKCS_PADDING, ONE_AND_ZEROS_PADDING, DEFAULT_PADDING};
 	/*! DEFAULT_PADDING means PKCS_PADDING if c.MandatoryBlockSize() > 1 && c.MinLastBlockSize() == 0 (e.g. ECB or CBC mode),
-		otherwise NO_PADDING (OFB, CFB, CTR, CBC-CTS modes).
-		See http://www.weidai.com/scan-mirror/csp.html for details of the padding schemes. */
+		otherwise NO_PADDING (OFB, CFB, CTR, CBC-CTS modes) */
 	StreamTransformationFilter(StreamTransformation &c, BufferedTransformation *attachment = NULL, BlockPaddingScheme padding = DEFAULT_PADDING);
 
 	void FirstPut(const byte *inString);

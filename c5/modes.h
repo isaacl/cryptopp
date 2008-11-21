@@ -42,23 +42,6 @@ public:
 	unsigned int IVSize() const {return BlockSize();}
 	virtual IV_Requirement IVRequirement() const =0;
 
-	void SetCipher(BlockCipher &cipher)
-	{
-		this->ThrowIfResynchronizable();
-		this->m_cipher = &cipher;
-		this->ResizeBuffers();
-	}
-
-	void SetCipherWithIV(BlockCipher &cipher, const byte *iv, int feedbackSize = 0)
-	{
-		this->ThrowIfInvalidIV(iv);
-		this->m_cipher = &cipher;
-		this->ResizeBuffers();
-		this->SetFeedbackSize(feedbackSize);
-		if (this->IsResynchronizable())
-			this->Resynchronize(iv);
-	}
-
 protected:
 	inline unsigned int BlockSize() const {assert(m_register.size() > 0); return (unsigned int)m_register.size();}
 	virtual void SetFeedbackSize(unsigned int feedbackSize)
@@ -140,7 +123,7 @@ inline void CopyOrZero(void *dest, const void *src, size_t s)
 class CRYPTOPP_DLL CRYPTOPP_NO_VTABLE OFB_ModePolicy : public ModePolicyCommonTemplate<AdditiveCipherAbstractPolicy>
 {
 public:
-	bool CipherIsRandomAccess() const {return false;}
+	bool IsRandomAccess() const {return false;}
 	IV_Requirement IVRequirement() const {return UNIQUE_IV;}
 	static const char * CRYPTOPP_API StaticAlgorithmName() {return "OFB";}
 
@@ -162,7 +145,7 @@ private:
 class CRYPTOPP_DLL CRYPTOPP_NO_VTABLE CTR_ModePolicy : public ModePolicyCommonTemplate<AdditiveCipherAbstractPolicy>
 {
 public:
-	bool CipherIsRandomAccess() const {return true;}
+	bool IsRandomAccess() const {return true;}
 	IV_Requirement IVRequirement() const {return UNIQUE_IV;}
 	static const char * CRYPTOPP_API StaticAlgorithmName() {return "CTR";}
 
@@ -308,13 +291,32 @@ class CipherModeFinalTemplate_ExternalCipher : public BASE
 public:
 	CipherModeFinalTemplate_ExternalCipher() {}
 	CipherModeFinalTemplate_ExternalCipher(BlockCipher &cipher)
-		{this->SetCipher(cipher);}
+		{SetCipher(cipher);}
 	CipherModeFinalTemplate_ExternalCipher(BlockCipher &cipher, const byte *iv, int feedbackSize = 0)
-		{this->SetCipherWithIV(cipher, iv, feedbackSize);}
+		{SetCipherWithIV(cipher, iv, feedbackSize);}
 
-	std::string AlgorithmName() const
-		{return this->m_cipher->AlgorithmName() + "/" + BASE::StaticAlgorithmName();}
+	void SetCipher(BlockCipher &cipher);
+	void SetCipherWithIV(BlockCipher &cipher, const byte *iv, int feedbackSize = 0);
 };
+
+template <class BASE>
+void CipherModeFinalTemplate_ExternalCipher<BASE>::SetCipher(BlockCipher &cipher)
+{
+	this->ThrowIfResynchronizable();
+	this->m_cipher = &cipher;
+	this->ResizeBuffers();
+}
+
+template <class BASE>
+void CipherModeFinalTemplate_ExternalCipher<BASE>::SetCipherWithIV(BlockCipher &cipher, const byte *iv, int feedbackSize)
+{
+	this->ThrowIfInvalidIV(iv);
+	this->m_cipher = &cipher;
+	this->ResizeBuffers();
+	this->SetFeedbackSize(feedbackSize);
+	if (this->IsResynchronizable())
+		this->Resynchronize(iv);
+}
 
 CRYPTOPP_DLL_TEMPLATE_CLASS CFB_CipherTemplate<AbstractPolicyHolder<CFB_CipherAbstractPolicy, CFB_ModePolicy> >;
 CRYPTOPP_DLL_TEMPLATE_CLASS CFB_EncryptionTemplate<AbstractPolicyHolder<CFB_CipherAbstractPolicy, CFB_ModePolicy> >;

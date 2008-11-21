@@ -1,6 +1,9 @@
 // iterhash.cpp - written and placed in the public domain by Wei Dai
 
-#define CRYPTOPP_MANUALLY_INSTANTIATE_TEMPLATES
+#include "pch.h"
+
+// prevent Sun's CC compiler from including this file automatically
+#if !defined(__SUNPRO_CC) || defined(CRYPTOPP_MANUALLY_INSTANTIATE_TEMPLATES)
 
 #include "iterhash.h"
 #include "misc.h"
@@ -143,3 +146,5 @@ template <class T, class BASE> void IteratedHashBase<T, BASE>::TruncatedFinal(by
 }
 
 NAMESPACE_END
+
+#endif
